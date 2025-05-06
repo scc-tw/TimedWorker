@@ -1,6 +1,26 @@
 cmake_minimum_required(VERSION 3.24)
 project(timed-worker LANGUAGES CXX VERSION 1.0.0)
 
+# Force C++23
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Check compiler support
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
+        message(FATAL_ERROR "GCC 13 or later is required for C++23 support")
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
+        message(FATAL_ERROR "Clang 17 or later is required for C++23 support")
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19.30)
+        message(FATAL_ERROR "MSVC 19.30 or later is required for C++23 support")
+    endif()
+endif()
+
 # Header-only interface target
 add_library(timed_worker INTERFACE)
 target_include_directories(timed_worker INTERFACE
