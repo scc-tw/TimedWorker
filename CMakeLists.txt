@@ -1,23 +1,23 @@
 cmake_minimum_required(VERSION 3.24)
 project(timed-worker LANGUAGES CXX VERSION 1.0.0)
 
-# Force C++23
-set(CMAKE_CXX_STANDARD 23)
+# Force C++20 (jthread and stop_token were introduced in C++20)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Check compiler support
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
-        message(FATAL_ERROR "GCC 13 or later is required for C++23 support")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
+        message(FATAL_ERROR "GCC 10 or later is required for C++20 support")
     endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
-        message(FATAL_ERROR "Clang 17 or later is required for C++23 support")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
+        message(FATAL_ERROR "Clang 13 or later is required for C++20 support")
     endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19.30)
-        message(FATAL_ERROR "MSVC 19.30 or later is required for C++23 support")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19.29)
+        message(FATAL_ERROR "MSVC 19.29 or later is required for C++20 support")
     endif()
 endif()
 
@@ -26,7 +26,7 @@ add_library(timed_worker INTERFACE)
 target_include_directories(timed_worker INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
-target_compile_features(timed_worker INTERFACE cxx_std_23)
+target_compile_features(timed_worker INTERFACE cxx_std_20)
 
 # Example
 add_executable(example_basic examples/basic.cpp)

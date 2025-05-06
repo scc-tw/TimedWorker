@@ -2,19 +2,19 @@
 
 <div align="center">
 
-![C++](https://img.shields.io/badge/C%2B%2B-23-blue.svg)
+![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)
 ![CI Status](https://github.com/scc-tw/TimedWorker/actions/workflows/ci.yml/badge.svg)
 
-**A robust C++23 library for handling worker threads with safe termination guarantees**
+**A robust C++20 library for handling worker threads with safe termination guarantees**
 
 </div>
 
 ## 🚀 Features
 
 - **Header-only** - Just include and go, no linking required
-- **Modern C++23** - Uses the latest C++ features like stop tokens and jthreads
+- **Modern C++20** - Uses features like stop tokens and jthreads
 - **Thread safety** - All operations are thread-safe
 - **Termination guarantees** - Automatically handles unresponsive threads
 - **Configurable timeouts** - Set how long to wait for worker termination
@@ -26,10 +26,10 @@
 
 | Compiler | Minimum Version | Notes |
 |----------|-----------------|-------|
-| GCC | 11+ | Full C++23 support in GCC 13+ |
-| Clang | 18+ | Full C++23 support in Clang 18+ (17 is buggy) |
+| GCC | 10+ | Full C++20 support in GCC 11+ |
+| Clang | 13+ | Full C++20 support in Clang 13+ |
 | AppleClang | **Not Supported** | AppleClang (even in Xcode 15) lacks `std::jthread` support |
-| MSVC | 19.44+ (VS 2022 17.4+) | With `/std:c++latest` flag |
+| MSVC | 19.29+ (VS 2019 16.10+) | With `/std:c++latest` flag |
 
 - CMake 3.24 or higher
 - Supports Linux, macOS, and Windows
@@ -150,7 +150,7 @@ target_link_libraries(your_target PRIVATE tw::timed_worker)
 
 ## 🔍 Implementation Details
 
-TimedWorker uses C++23's `std::jthread` and `std::stop_token` to manage the worker thread lifecycle. Key implementation features:
+TimedWorker uses C++20's `std::jthread` and `std::stop_token` to manage the worker thread lifecycle. Key implementation features:
 
 - **Cooperative cancellation** - Worker can check stop_requested() periodically
 - **Timeout enforcement** - If worker doesn't respond within timeout, it's forcibly detached
@@ -162,19 +162,19 @@ TimedWorker uses C++23's `std::jthread` and `std::stop_token` to manage the work
 
 ## 🧪 Continuous Integration
 
-The library is automatically tested on multiple platforms with compiler configurations that fully support C++23:
+The library is automatically tested on multiple platforms with compiler configurations that fully support C++20:
 
 - **Linux (Ubuntu 24.04)**: GCC 13, Clang 18
 - **macOS 14**: LLVM Clang 18 (not AppleClang, which lacks jthread support)
 - **Windows 2022**: MSVC 19.44+
 
-This ensures compatibility across all major platforms and C++23-compatible compilers.
+This ensures compatibility across all major platforms and C++20-compatible compilers.
 
 ## ⚠️ Known Issues
 
 ### AppleClang and jthread Compatibility
 
-As of early 2024, AppleClang (including the version shipped with Xcode 15) does not fully support C++23 features required by TimedWorker:
+As of early 2024, AppleClang (including the version shipped with Xcode 15) does not fully support C++20 features required by TimedWorker:
 
 - `std::jthread` is not implemented
 - `std::stop_token` is not available
