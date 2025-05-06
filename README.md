@@ -5,7 +5,7 @@
 ![C++](https://img.shields.io/badge/C%2B%2B-23-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)
-[![CI Status](https://github.com/scc_tw/TimedWorker/workflows/CI/badge.svg)](https://github.com/scc_tw/TimedWorker/actions)
+![CI Status](https://github.com/scc-tw/TimedWorker/actions/workflows/ci.yml/badge.svg)
 
 **A robust C++23 library for handling worker threads with safe termination guarantees**
 
@@ -37,6 +37,8 @@
 
 ## 📋 Quick Start
 
+> ⚠️ **Important:** The worker function **must** accept a `std::stop_token` as its first parameter and regularly check `stop_requested()`. Infinite loops without stop checks are not supported and will be forcibly detached.
+
 ### Basic Example
 
 ```cpp
@@ -53,7 +55,7 @@ int main() {
         
         // Run until stop is requested or work is complete
         int count = 0;
-        while (!st.stop_requested() && count < 5) {
+        while (!st.stop_requested() && count < 5) {  // <-- Always check stop_requested() in loops
             std::this_thread::sleep_for(100ms);
             std::cout << "Working... " << ++count << "\n";
         }
@@ -156,12 +158,14 @@ TimedWorker uses C++23's `std::jthread` and `std::stop_token` to manage the work
 - **Exception handling** - All exceptions in the worker thread are caught and logged
 - **Atomic operations** - Thread-safe status checking
 
+📝 **Best practice:** Always design your worker functions to periodically check `st.stop_requested()`, especially in loops or long-running operations. The library will forcibly detach threads that don't respond to stop requests within the specified timeout, which may lead to resource leaks.
+
 ## 🧪 Continuous Integration
 
 The library is automatically tested on multiple platforms with compiler configurations that fully support C++23:
 
-- **Linux (Ubuntu 24.04)**: GCC 13, Clang 17
-- **macOS 14**: LLVM Clang 17 (not AppleClang, which lacks jthread support)
+- **Linux (Ubuntu 24.04)**: GCC 13, Clang 18
+- **macOS 14**: LLVM Clang 18 (not AppleClang, which lacks jthread support)
 - **Windows 2022**: MSVC 19.44+
 
 This ensures compatibility across all major platforms and C++23-compatible compilers.
@@ -195,10 +199,6 @@ As of early 2024, AppleClang (including the version shipped with Xcode 15) does 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👤 Author
-
-Created and maintained by [@scc-tw](https://github.com/scc-tw).
 
 ## 🤝 Contributing
 
