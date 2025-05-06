@@ -12,13 +12,13 @@ jobs:
           - os: ubuntu-24.04
             compiler: gcc-13
             tool: aminya
-          # Clang ≥ 13 needed for C++23 core (we pick 17 upstream)
+          # Clang ≥ 13 needed for C++23 core (we pick 18 upstream)
           - os: ubuntu-24.04
-            compiler: llvm-17
+            compiler: llvm-18
             tool: aminya
-          # AppleClang ≥ 13.1 needed for C++23 core (we pick 14 on macOS 14)
+          # AppleClang not support jthread
           - os: macos-14
-            compiler: apple-clang-14
+            compiler: clang-18
             tool: brew
           # MSVC ≥ 19.44 (VS 2022 v17.4+) needed for C++23 core
           - os: windows-2022
