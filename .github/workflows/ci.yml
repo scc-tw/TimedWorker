@@ -44,7 +44,11 @@ jobs:
         run: |
           brew update
           brew install llvm
+          # Prepend brewed LLVM to PATH
           echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+          # Use brewed clang/clang++ explicitly
+          echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
+          echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
