@@ -61,8 +61,8 @@ namespace tw
                     deadline = now; // escalate now
 
                 // join asynchronously so we can bound the wait
-                auto fut = std::async(std::launch::async, [this]
-                                      { _thr.join(); });
+                auto fut = std::async(std::launch::async, [thr = std::move(_thr)]() mutable
+                                      { thr.join(); });
 
                 if (fut.wait_until(deadline) != std::future_status::ready)
                 {

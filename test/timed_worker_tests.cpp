@@ -105,29 +105,52 @@ TEST(TimedWorker, EmergencyStopTriggersImmediateDetach)
     sink << "Emergency test starting\n";
 
     {
-        // Inline the worker function with debug logging
-        auto w = tw::make_timed_worker(100ms, [&sink](std::stop_token st)
+        // Create a flag to track if the worker is blocked
+        std::atomic_bool worker_blocked{false};
+
+        // Inline the worker function with debug logging - now with block before checking the stop token
+        auto w = tw::make_timed_worker(100ms, [&sink, &worker_blocked](std::stop_token st)
                                        {
             sink << "Emergency worker thread started\n";
-            // Purposely ignore stop requests but have a safety exit after 1 second
-            auto start = std::chrono::steady_clock::now();
-            while (!st.stop_requested() && 
-                   std::chrono::steady_clock::now() - start < std::chrono::seconds(1)) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            
+            // Block the worker for a bit to ensure emergency_stop has time to take effect
+            // but the worker doesn't have time to check the stop token before destruction
+            worker_blocked = true;
+            // Use a longer sleep to ensure the worker is still running when emergency_stop is called
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            worker_blocked = false;
+            
+            sink << "Emergency worker finishing block\n";
+            
+            // Normal worker logic follows
+            if (!st.stop_requested()) {
+                sink << "Emergency worker NOT stopped (unexpected)\n";
+            } else {
+                sink << "Emergency worker sees stop request\n";
             }
+            
             sink << "Emergency worker exiting\n"; }, sink);
+
+        // Give worker time to start blocking
+        std::this_thread::sleep_for(10ms);
+
+        // Verify the worker has started and is blocked
+        EXPECT_TRUE(worker_blocked) << "Worker should be blocked at this point";
 
         // escalate immediately – destructor should not wait
         sink << "Calling emergency_stop()\n";
         w.emergency_stop();
         sink << "About to destroy emergency worker\n";
 
-        // Add a sleep to let the worker respond to the emergency stop
-        std::this_thread::sleep_for(10ms);
+        // We're not sleeping here - we want the destructor to
+        // run while the worker is still blocked
     }
     sink << "Emergency worker destroyed\n";
 
-    EXPECT_NE(sink.str().find("FORCED detach"), std::string::npos);
+    // Check that forced detach happened
+    EXPECT_NE(sink.str().find("FORCED detach"), std::string::npos)
+        << "Emergency stop should have triggered a forced detach";
+
     std::cout << "Emergency test log: " << sink.str() << std::endl;
 }
 
