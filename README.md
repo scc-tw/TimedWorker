@@ -27,12 +27,13 @@
 | Compiler | Minimum Version | Notes |
 |----------|-----------------|-------|
 | GCC | 11+ | Full C++23 support in GCC 13+ |
-| Clang | 13+ | Full C++23 support in Clang 17+ |
-| AppleClang | 13.1+ | Recommended: 14+ on macOS 14 |
+| Clang | 18+ | Full C++23 support in Clang 18+ (17 is buggy) |
+| AppleClang | **Not Supported** | AppleClang (even in Xcode 15) lacks `std::jthread` support |
 | MSVC | 19.44+ (VS 2022 17.4+) | With `/std:c++latest` flag |
 
 - CMake 3.24 or higher
 - Supports Linux, macOS, and Windows
+- For macOS users: Use LLVM Clang instead of AppleClang (install via Homebrew: `brew install llvm`)
 
 ## 📋 Quick Start
 
@@ -160,10 +161,36 @@ TimedWorker uses C++23's `std::jthread` and `std::stop_token` to manage the work
 The library is automatically tested on multiple platforms with compiler configurations that fully support C++23:
 
 - **Linux (Ubuntu 24.04)**: GCC 13, Clang 17
-- **macOS 14**: AppleClang 14
+- **macOS 14**: LLVM Clang 17 (not AppleClang, which lacks jthread support)
 - **Windows 2022**: MSVC 19.44+
 
 This ensures compatibility across all major platforms and C++23-compatible compilers.
+
+## ⚠️ Known Issues
+
+### AppleClang and jthread Compatibility
+
+As of early 2024, AppleClang (including the version shipped with Xcode 15) does not fully support C++23 features required by TimedWorker:
+
+- `std::jthread` is not implemented
+- `std::stop_token` is not available
+
+**Workarounds for macOS users:**
+
+1. **Recommended:** Install LLVM Clang via Homebrew and use it instead of AppleClang:
+   ```bash
+   brew install llvm
+   export CXX="$(brew --prefix llvm)/bin/clang++"
+   export CXXFLAGS="-std=c++23"
+   cmake -DCMAKE_CXX_COMPILER="$(brew --prefix llvm)/bin/clang++" ..
+   ```
+
+2. Use GCC instead:
+   ```bash
+   brew install gcc
+   export CXX="$(brew --prefix gcc)/bin/g++-13"
+   cmake -DCMAKE_CXX_COMPILER="$(brew --prefix gcc)/bin/g++-13" ..
+   ```
 
 ## 📄 License
 
