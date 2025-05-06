@@ -1,0 +1,55 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # GCC ≥ 11 needed for C++23 core (we pick 13 on Ubuntu 24.04)
+          - os: ubuntu-24.04
+            compiler: gcc-13
+            tool: aminya
+          # Clang ≥ 13 needed for C++23 core (we pick 17 upstream)
+          - os: ubuntu-24.04
+            compiler: llvm-17
+            tool: aminya
+          # AppleClang ≥ 13.1 needed for C++23 core (we pick 14 on macOS 14)
+          - os: macos-14
+            compiler: apple-clang-14
+            tool: brew
+          # MSVC ≥ 19.44 (VS 2022 v17.4+) needed for C++23 core
+          - os: windows-2022
+            compiler: msvc
+            tool: aminya
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Linux & Windows: use aminya/setup-cpp to install gcc/clang/msvc
+      - name: Setup C++ toolchain (Ubuntu/Windows)
+        if: matrix.tool == 'aminya'
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          cmake: true
+          ninja: true
+
+      # macOS: install latest LLVM via Homebrew to get std::jthread support
+      - name: Install LLVM via Homebrew (macOS)
+        if: matrix.tool == 'brew'
+        run: |
+          brew update
+          brew install llvm
+          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build & Test
+        run: |
+          cmake --build build --config Release
+          ctest --test-dir build --output-on-failure
