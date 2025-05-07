@@ -137,7 +137,7 @@ TEST(TimedWorker, EmergencyStopTriggersImmediateDetach)
         // Verify the worker has started and is blocked
         EXPECT_TRUE(worker_blocked) << "Worker should be blocked at this point";
 
-        // escalate immediately – destructor should not wait
+        // escalate immediately - destructor should not wait
         sink << "Calling emergency_stop()\n";
         w.emergency_stop();
         sink << "About to destroy emergency worker\n";
@@ -292,4 +292,83 @@ TEST(TimedWorker, MoveWorkerToFunction)
     std::this_thread::sleep_for(50ms);
 
     EXPECT_NE(sink.str().find("Task finishing"), std::string::npos);
+}
+
+TEST(TimedWorker, ImmediateStopBeforeWorkerStarts)
+{
+    using namespace std::chrono_literals;
+    std::ostringstream sink;
+    std::atomic_bool ran{false};
+
+    {
+        auto w = tw::make_timed_worker(500ms, [&](std::stop_token)
+                                       { ran = true; }, sink);
+        w.request_stop();
+    }
+
+    EXPECT_FALSE(ran);
+}
+
+TEST(TimedWorker, DestructionWithoutStartingThread)
+{
+    using namespace std::chrono_literals;
+    std::ostringstream sink;
+
+    EXPECT_NO_THROW({
+        auto w = tw::make_timed_worker(500ms, [&](std::stop_token)
+                                       { std::this_thread::sleep_for(10ms); }, sink);
+        // destroy immediately without sleeping
+    });
+}
+
+TEST(TimedWorker, LongRunningTaskBeyondTimeout)
+{
+    using namespace std::chrono_literals;
+    std::ostringstream sink;
+
+    {
+        auto w = tw::make_timed_worker(1ms, [&](std::stop_token)
+                                       { std::this_thread::sleep_for(std::chrono::seconds(5)); }, sink);
+        std::this_thread::sleep_for(10ms);
+    }
+
+    EXPECT_NE(sink.str().find("FORCED detach"), std::string::npos);
+}
+
+struct ThrowingStream
+{
+    template <typename T>
+    ThrowingStream &operator<<(T &&) { throw std::runtime_error("log failure"); }
+};
+
+TEST(TimedWorker, LoggingCannotThrow)
+{
+    using namespace std::chrono_literals;
+    ThrowingStream ts;
+
+    EXPECT_NO_THROW({
+        auto w = tw::make_timed_worker(1ms, [&](std::stop_token)
+                                       { std::this_thread::sleep_for(10ms); }, ts);
+        std::this_thread::sleep_for(10ms);
+    });
+}
+
+TEST(TimedWorker, HighConcurrencyStressTest)
+{
+    using namespace std::chrono_literals;
+    const int N = 100;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < N; ++i)
+    {
+        threads.emplace_back([]()
+                             {
+            std::ostringstream sink;
+            auto w = tw::make_timed_worker(10ms, [&](std::stop_token)
+                                           { std::this_thread::sleep_for(50ms); }, sink); });
+    }
+    for (auto &t : threads)
+        t.join();
+
+    SUCCEED();
 }

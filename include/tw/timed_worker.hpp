@@ -1,4 +1,5 @@
-// timed_worker.hpp – C++23
+#ifndef TW_TIMED_WORKER_HPP
+#define TW_TIMED_WORKER_HPP
 #pragma once
 
 #include <chrono>
@@ -14,7 +15,6 @@
 
 namespace tw
 {
-    // Forward declaration
     template <class LogS = std::ostream, class F, class... Args>
     auto make_timed_worker(std::chrono::milliseconds timeout, F &&f, LogS &ls = std::cerr, Args &&...args);
 
@@ -22,21 +22,15 @@ namespace tw
     class TimedWorker
     {
     public:
-        // Declare make_timed_worker as a friend function using the forward declaration
         template <class LogS, class F, class... Args>
         friend auto make_timed_worker(std::chrono::milliseconds timeout, F &&f, LogS &ls, Args &&...args);
 
-        /// cooperative stop request (soft)
         void request_stop() noexcept { _thr.request_stop(); }
-
-        /// emergency stop – callable from a signal handler
         void emergency_stop() noexcept { _emergency.store(true, std::memory_order_relaxed); }
 
-        /// returns true after the task finished or the worker detached
         bool done() const noexcept { return _done.load(std::memory_order_acquire); }
         bool detached() const noexcept { return _detached; }
 
-        /// non-copyable, movable
         TimedWorker(TimedWorker &&) noexcept = default;
         TimedWorker &operator=(TimedWorker &&) noexcept = default;
         TimedWorker(const TimedWorker &) = delete;
@@ -46,7 +40,6 @@ namespace tw
         {
             if (_thr.joinable())
             {
-                // If the thread is already done, just join it quickly
                 if (_done.load(std::memory_order_acquire))
                 {
                     _thr.join();
@@ -56,24 +49,22 @@ namespace tw
                 auto now = Clock::now();
                 auto deadline = std::min(now + _timeout, _absDeadline);
 
-                _thr.request_stop(); // polite
+                _thr.request_stop();
                 if (_emergency.load(std::memory_order_relaxed))
-                    deadline = now; // escalate now
+                    deadline = now;
 
-                // join asynchronously so we can bound the wait
                 auto fut = std::async(std::launch::async, [thr = std::move(_thr)]() mutable
                                       { thr.join(); });
 
                 if (fut.wait_until(deadline) != std::future_status::ready)
                 {
-                    // worker ignored us – detach & leak, log loudly
                     try
                     {
-                        _log << "[TimedWorker] FORCED detach – resources may leak\n";
+                        _log << "[TimedWorker] FORCED detach - resources may leak\n";
                     }
                     catch (...)
                     {
-                    } // logging itself must never throw
+                    }
                     detach();
                 }
             }
@@ -91,13 +82,17 @@ namespace tw
                   _emergency.store(true, std::memory_order_relaxed);
               });
 
-              // main loop / one-shot task
-              try { func(st); }
-              catch (std::exception const& ex) {
-                  _log << "[TimedWorker] unhandled exception: " << ex.what() << '\n';
-              } catch (...) {
-                  _log << "[TimedWorker] unknown exception\n";
+              // Skip work if stop was already requested
+              if (!st.stop_requested())
+              {
+                  try { func(st); }
+                  catch (std::exception const& ex) {
+                      _log << "[TimedWorker] unhandled exception: " << ex.what() << '\n';
+                  } catch (...) {
+                      _log << "[TimedWorker] unknown exception\n";
+                  }
               }
+
               _done.store(true, std::memory_order_release); })
         {
         }
@@ -122,7 +117,6 @@ namespace tw
     auto make_timed_worker(std::chrono::milliseconds timeout,
                            F &&f, LogS &ls, Args &&...args)
     {
-        // wrap user function so final signature is f(stop_token, args...)
         auto bound = [func = std::forward<F>(f),
                       tup = std::make_tuple(std::forward<Args>(args)...)](std::stop_token st) mutable
         {
@@ -133,3 +127,5 @@ namespace tw
     }
 
 } // namespace tw
+
+#endif // TW_TIMED_WORKER_HPP
