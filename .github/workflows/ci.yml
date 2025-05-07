@@ -29,6 +29,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Cache build directory with compiler in the key
+      - name: Cache build directory
+        uses: actions/cache@v3
+        with:
+          path: build
+          key: ${{ runner.os }}-build-${{ matrix.compiler }}-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ matrix.compiler }}-
+            ${{ runner.os }}-build-
+
       # Linux & Windows: use aminya/setup-cpp to install gcc/clang/msvc
       - name: Setup C++ toolchain (Ubuntu/Windows)
         if: matrix.tool == 'aminya'
@@ -37,6 +47,7 @@ jobs:
           compiler: ${{ matrix.compiler }}
           cmake: true
           ninja: true
+          ccache: true # Enable ccache for better caching of object files
 
       # macOS: install latest LLVM via Homebrew to get std::jthread support
       - name: Install LLVM via Homebrew (macOS)
