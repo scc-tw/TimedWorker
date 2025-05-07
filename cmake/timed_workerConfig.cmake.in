@@ -1,0 +1,4 @@
+@PACKAGE_INIT@
+
+# Allow users to just link against tw::timed_worker
+include("${CMAKE_CURRENT_LIST_DIR}/twTargets.cmake")
